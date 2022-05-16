@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { randomize, shuffle } from './utils/QuizSessionUtil'
 
 // State
 type Quiz = {
@@ -49,6 +50,21 @@ function quizSessionReducer(state: State, action: Action) {
   // 맞은 혹은 틀린 개수가 업데이트 되고,
   // 다음 퀴즈로 넘어가야 함.
   const newState = { ...state }
+
+  switch (action.type) {
+    case 'SELECT':
+      if (newState.quizList[action.payload.quizIndex].answer === action.payload.selected) {
+        newState.correctCount += 1
+      } else {
+        newState.inCorrectCount += 1
+      }
+      if (newState.currentIndex === newState.quizList.length - 1) {
+        newState.isCompleted = true
+      } else {
+        newState.currentIndex += 1
+      }
+  }
+
   return newState
 }
 
@@ -142,25 +158,35 @@ function QuizSession() {
     // 해당 단어의 뜻 하나와 다른 단어의 뜻 둘을 포함하여
     // 3지 선다형 뜻 찾기 문제 보기로 변환한다.
     // 아래 데이터는 예시 데이터이므로 삭제.
+
+    const convertedData = initialData.map((data, index) => {
+      let temp: Quiz = { index, text: data.text, answer: data.meaning, selections: [] }
+
+      let selectionsIndexArr = [index]
+
+      for (let i = 0; i < 2; i++) {
+        let randomIndex = randomize(initialData.length)
+
+        if (selectionsIndexArr.includes(randomIndex)) {
+          i--
+        } else {
+          selectionsIndexArr.push(randomIndex)
+        }
+      }
+
+      shuffle(selectionsIndexArr)
+
+      selectionsIndexArr.forEach((index) => temp.selections.push(initialData[index].meaning))
+
+      return temp
+    })
+
     return {
       isCompleted: false,
       correctCount: 0,
       inCorrectCount: 0,
       currentIndex: 0,
-      quizList: [
-        {
-          index: 0,
-          text: 'apple',
-          answer: 'n. 사과',
-          selections: ['n. 사과', 'n. 밀가루 반죽']
-        },
-        {
-          index: 1,
-          text: 'brick',
-          answer: 'n. 벽돌',
-          selections: ['n. 벽돌', 'v. 뛰다, 급증하다']
-        }
-      ],
+      quizList: convertedData,
       quizResults: []
     }
   }
